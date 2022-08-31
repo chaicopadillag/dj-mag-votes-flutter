@@ -1,5 +1,9 @@
-import 'package:djmag_votes/models/models.dart';
 import 'package:flutter/material.dart';
+import 'package:pie_chart/pie_chart.dart';
+import 'package:provider/provider.dart';
+
+import 'package:djmag_votes/providers/providers.dart';
+import 'package:djmag_votes/models/models.dart';
 
 class ListVotes extends StatelessWidget {
   final List<Producer> producers;
@@ -7,12 +11,22 @@ class ListVotes extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListView.builder(
-        itemCount: producers.length,
-        itemBuilder: (context, i) => _produceTitle(producers[i]));
+    return Column(
+      children: [
+        _votesChart(),
+        Expanded(
+          child: ListView.builder(
+              shrinkWrap: true,
+              itemCount: producers.length,
+              itemBuilder: (context, i) =>
+                  _produceTitle(producers[i], context)),
+        ),
+      ],
+    );
   }
 
-  Widget _produceTitle(Producer producer) {
+  Widget _produceTitle(Producer producer, BuildContext context) {
+    final socketProv = Provider.of<SocketProvider>(context, listen: false);
     return Dismissible(
       key: Key(producer.id),
       direction: DismissDirection.startToEnd,
@@ -30,8 +44,7 @@ class ListVotes extends StatelessWidget {
         ),
       ),
       onDismissed: (direction) {
-        print(producer.name);
-        producers.remove(producer);
+        socketProv.emit('delete-producer', {"id": producer.id});
       },
       child: ListTile(
         leading: CircleAvatar(
@@ -41,9 +54,24 @@ class ListVotes extends StatelessWidget {
         // subtitle: const Text('DJ Mag Votes 2022'),
         trailing: Text('${producer.votes}'),
         onTap: () {
-          print('${producer.name} was tapped!');
+          socketProv.emit('vote-producer', {"id": producer.id});
         },
       ),
     );
+  }
+
+  Widget _votesChart() {
+    Map<String, double> dataMap = {};
+
+    for (var producer in producers) {
+      dataMap.putIfAbsent(producer.name, () => producer.votes.toDouble());
+    }
+
+    return SizedBox(
+        width: double.infinity,
+        height: 200,
+        child: PieChart(
+          dataMap: dataMap.isEmpty ? {'No datos': 0} : dataMap,
+        ));
   }
 }

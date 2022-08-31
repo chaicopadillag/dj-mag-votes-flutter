@@ -1,9 +1,12 @@
 import 'dart:io';
 
-import 'package:djmag_votes/models/models.dart';
-import 'package:djmag_votes/widgets/widgets.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
+import 'package:djmag_votes/models/models.dart';
+import 'package:djmag_votes/providers/socket_provider.dart';
+import 'package:djmag_votes/widgets/widgets.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -13,15 +16,26 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  final List<Producer> producers = [
-    Producer(id: '1', name: 'Avicii', votes: 100),
-    Producer(id: '2', name: 'Martin Garrix', votes: 50),
-    Producer(id: '3', name: 'Tiesto', votes: 40),
-    Producer(id: '4', name: 'Armin van Burren', votes: 30),
-    Producer(id: '5', name: 'Alan Walker', votes: 20),
-  ];
+  late List<Producer> producers = [];
+
+  @override
+  void initState() {
+    final socketProv = Provider.of<SocketProvider>(context, listen: false);
+
+    socketProv.socket.on('producers', (payload) {
+      producers = (payload as List)
+          .map((producer) => Producer.fromJson(producer))
+          .toList();
+
+      setState(() {});
+    });
+
+    super.initState();
+  }
+
   @override
   Widget build(BuildContext context) {
+    final socketProv = Provider.of<SocketProvider>(context);
     return Scaffold(
       appBar: AppBar(
         title: const Text(
@@ -31,6 +45,19 @@ class _HomeScreenState extends State<HomeScreen> {
         backgroundColor: Colors.white,
         elevation: 1,
         centerTitle: true,
+        actions: [
+          Container(
+              margin: const EdgeInsets.only(right: 10),
+              child: socketProv.socketStatus == SocketStatus.Online
+                  ? const Icon(
+                      Icons.check_circle,
+                      color: Colors.green,
+                    )
+                  : const Icon(
+                      Icons.offline_bolt,
+                      color: Colors.red,
+                    ))
+        ],
       ),
       body: ListVotes(producers: producers),
       floatingActionButton: FloatingActionButton(
@@ -104,13 +131,10 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   addProducerVote(String text) {
-    print(text);
+    final socketProv = Provider.of<SocketProvider>(context, listen: false);
 
     if (text.isNotEmpty) {
-      setState(() {
-        producers.add(
-            Producer(id: '${producers.length + 1}', name: text, votes: 10));
-      });
+      socketProv.emit('add-producer', {"name": text});
     }
 
     Navigator.of(context).pop();
