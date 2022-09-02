@@ -2,4 +2,4 @@
 
 Demo:
 
-<img src="https://raw.githubusercontent.com/chaicopadillag/shoe-flutter/main/demo.gif" width="300" alt="News Papper"/>
+<img src="https://raw.githubusercontent.com/chaicopadillag/dj-mag-votes-flutter/main/demo.gif" width="300" alt="News Papper"/>
